@@ -51,6 +51,8 @@ save.image()
 ap <- bd03Pref %>% filter(eleito == 1, capital == 1, ano == 2016) %>% select(uf, nomMun, partOrig, regiao)
 ap2 <- ap %>% group_by(partOrig) %>% summarise(n = n())
 
+
+## Pegando JSONS
 apcodtse <- unique(bd01Ver$codMun)
 apuf <- unique(bd01Ver$uf)
 apx <- 1
@@ -71,58 +73,49 @@ for(apu in apuf) {
     apname <- paste0("vereador/", api, ".json")
     write(apjson, apname)
     
-    #apele <- apjson$ele
-    #apcod <- apjson$cdabr
-    #apdt <- apjson$dt
-    #aphora <- apjson$ht
-    #apporc <- apjson$psa
-    #apturno <- apjson$t
-    #apfase <- apjson$f
-    #apcands <- apjson$cand
     
-    
-    #for(apc in apcands) {
-      
-    #  apnumcand <- apc$n
-    #  apnome <- apc$nm
-    #  appart <- apc$cc
-    #  apvap <- apc$vap
-    #  appvap <- apc$pvap
-    #  apele2 <- apc$st
-      
-    #  apline <- c(apele, 
-    #              apcod,
-    #              apdt, 
-    #              aphora, 
-    #              apporc, 
-    #              apturno, 
-    #              apfase, 
-    #              apnumcand,
-    #              apnome,
-    #              appart,
-    #              apvap,
-    #              appvap,
-    #              apele2)
-      
-    #  aptab <- rbind(aptab, apline)
-      
-     #}
-  
   }
 
 }
 
-aplast <- aptab$X.00019.[nrow(aptab)]
-apquais <- unique(aptab$X.00019.)
-apquais <- apquais[apquais != aplast]
-aptab <- aptab %>% filter(X.00019. != aplast)
+apcodtse <- unique(bd01Ver$codMun)
+apuf <- unique(bd01Ver$uf)
+
+for(apu in apuf) {
+  
+  apcodtse <- unique(bd01Ver$codMun[bd01Ver$uf == apu])
+  apufs <- tolower(apu)
+  print(apu)
+  
+  for(api in apcodtse) {
+    
+    aplink <- sprintf("https://resultados.tse.jus.br/oficial/ele2020/divulgacao/oficial/426/dados-simplificados/%s/%s%s-c0011-e000426-r.json", apufs, apufs, api)
+    apjson <- fromJSON(paste(readLines(aplink), collapse=""))
+    apjson <- toJSON(apjson)
+    
+    apname <- paste0("prefeito/", api, ".json")
+    write(apjson, apname)
+    
+    
+  }
+  
+}
+
+#aplast <- aptab$X.00019.[nrow(aptab)]
+#apquais <- unique(aptab$X.00019.)
+#apquais <- apquais[apquais != aplast]
+#aptab <- aptab %>% filter(X.00019. != aplast)
+
+
+# compilando vereador
+apx <- 1
+aptab <- tibble()
 
 apf <- list.files("vereador", full.names = T)
-apf2 <- unlist(lapply(apquais, function(x) which(grepl(x, apf))))
-apf <- apf[-apf2]
-apx <- 1
+#apf2 <- unlist(lapply(apquais, function(x) which(grepl(x, apf))))
+#apf <- apf[-apf2]
 
-aptab2 <- aptab
+#aptab2 <- aptab
 
 for(apff in apf) {
   
@@ -143,6 +136,7 @@ for(apff in apf) {
   apvap <-  sapply(apcands, function(x) x$vap)
   appvap <-  sapply(apcands, function(x) x$pvap)
   apele2 <-  sapply(apcands, function(x) x$st)
+  
   aptib <- tibble(apele, apcod, apdt, aphora, apporc, apturno, apfase, apnumcand,
                  apnome, appart, apvap, appvap, apele2)
   names(aptib) <- names(aptab)
@@ -157,59 +151,65 @@ for(apff in apf) {
 apver <- aptab
 names(apver) <- c("codele", "codtse", "data", "hora", "apuracao", "turno", "fase", "ncand", "nome", "partido", "votabs", "votpor", "situacao")
 apver$cargo <- "vereador"
+apver$codibge <- tabMunHist$codIbgeDv[match(apver$codtse, tabMunHist$codTse)]
+apver$uf <- tabMunHist$uf[match(apver$codtse, tabMunHist$codTse)]
+apver$regiao <- tabMunHist$regiao[match(apver$codtse, tabMunHist$codTse)]
+apver$compilado <- Sys.time()
+
 save(apver, file = "ver.RData")
 write.csv2(apver, file = "vereadores2020.csv", row.names = F)
 save.image()
 
-#atualização
-apver <- read.csv2("vereadores2020.csv", colClasses = rep("character", 14))
+## PREFEITOS
+
+apx <- 1
+aptab <- tibble()
+
+apf <- list.files("prefeito", full.names = T)
+#apf2 <- unlist(lapply(apquais, function(x) which(grepl(x, apf))))
+#apf <- apf[-apf2]
+
+#aptab2 <- aptab
+
+for(apff in apf) {
+  
+  apjson <- fromJSON(paste(readLines(apff), collapse=""))
+  
+  apele <- apjson$ele
+  apcod <- apjson$cdabr
+  apdt <- apjson$dt
+  aphora <- apjson$ht
+  apporc <- apjson$psa
+  apturno <- apjson$t
+  apfase <- apjson$f
+  apcands <- apjson$cand
+  
+  apnumcand <- sapply(apcands, function(x) x$n)
+  apnome <- sapply(apcands, function(x) x$nm)
+  appart <-  sapply(apcands, function(x) x$cc)
+  apvap <-  sapply(apcands, function(x) x$vap)
+  appvap <-  sapply(apcands, function(x) x$pvap)
+  apele2 <-  sapply(apcands, function(x) x$st)
+  
+  aptib <- tibble(apele, apcod, apdt, aphora, apporc, apturno, apfase, apnumcand,
+                  apnome, appart, apvap, appvap, apele2)
+  names(aptib) <- names(aptab)
+  aptab <- rbind(aptab, aptib)
+  
+  print(apx/length(apf)*100)
+  apx <- apx + 1
+  
+}
+
+
+apver <- aptab
+names(apver) <- c("codele", "codtse", "data", "hora", "apuracao", "turno", "fase", "ncand", "nome", "partido", "votabs", "votpor", "situacao")
+apver$cargo <- "prefeito"
 apver$codibge <- tabMunHist$codIbgeDv[match(apver$codtse, tabMunHist$codTse)]
-apver$uf <- tabMunHist$uf[match(apver$codibge, tabMunHist$codIbgeDv)]
-apver$regiao <- tabMunHist$regiao[match(apver$codibge, tabMunHist$codIbgeDv)]
+apver$uf <- tabMunHist$uf[match(apver$codtse, tabMunHist$codTse)]
+apver$regiao <- tabMunHist$regiao[match(apver$codtse, tabMunHist$codTse)]
+apver$compilado <- Sys.time()
 
-############ Banco 2020 #############################################3
-clsap()
-apver <- read.csv2("vereadores2020.csv", colClasses = rep("character", 14)) 
-apver$apuracao <- gsub(",", "\\.", apver$apuracao)
-apver[,c(5, 11)] <- lapply(apver[,c(5, 11)], as.numeric)
-apver <- apver %>% filter(apuracao == 100)
-apver$part <- tabPart$simpAtual[match(apver$partido, tabPart$original)]
-
-ap2 <- apver %>% group_by(part) %>% summarise(vot = sum(votabs)) %>% mutate(porc = vot/sum(vot)*100)
-apmun <- unique(apver$codtse)
-ap3 <- bd01Ver %>% filter(ano == 2016, codMun %in% apmun) %>% group_by(part) %>% summarise(vot = sum(votosNom)) %>% mutate(porc = vot/sum(vot)*100)
-ap2$votabs16 <- ap3$vot[match(ap2$part, ap3$part)]  
-ap2$votpor16 <- ap3$porc[match(ap2$part, ap3$part)]
-ap2$diff <- ((ap2$porc/ap2$votpor16)-1)*100
-ap2$diffabs <- ap2$vot - ap2$votabs16
-ap2$diffpor <- ap2$porc-ap2$votpor16
-ap2 <- ap2 %>% arrange(desc(diffabs))
-ap2 <- ap2[,c(1, 2, 4, 3, 5, 8, 6, 7)]
-
-ap2 %>%
-  kable("latex",
-        booktabs = T,
-        digits = 1,
-        col.names = c("partido", "2020", "2016", "2020", "2016", "\\%", "crescimento", "abs"),
-        #caption = '\\label{tab:xyz}Nome da tabela (lugar, ano)',
-        escape = F,
-        format.args = list(decimal.mark = ','),
-        #align = c("l", rep("c", 3)),
-        linesep = "",
-        row.names = F) %>%
-  #kable_styling(font_size = 8, latex_options = "hold_position") %>%
-  #add_header_above(c(" " = 1, "Modelos" = 3)) %>%
-  footnote(#number = c("Erros-padrão robustos",
-            #          "Significância: $^{*}$p$<$0,05; $^{**}$p$<$0,01; $^{***}$p$<$0,001;",
-            #          "Todos os modelos estão controlados pela variável uf"),
-           #general_title = "",
-           #general = "Fonte: Elaborado pelos autores a partir de dados do TSE.",
-           threeparttable = T,
-           #footnote_order = c("number", "general"),
-           escape = F) %>%
-#collapse_rows(columns = 1:2, valign = "middle", latex_hline = "none") %>%
-
-  #add_indent(c(3, 4, 6, 9, 10, 13, 14)) %>%
-#row_spec(15, hline_after = TRUE, extra_latex_after = "\\rule{0pt}{3ex}") %>%
-save_kable(file = "tabelas/a01.png")
-set
+save(apver, file = "pref.RData")
+write.csv2(apver, file = "prefeitos2020.csv", row.names = F)
+save.image()
