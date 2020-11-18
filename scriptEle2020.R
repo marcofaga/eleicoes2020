@@ -40,9 +40,13 @@ stop()
 # dança das cadeiras
 # 
 
+# Pegando dados de partido
+load("tabPart2011180005.RData")
+
 # Pegando os dados dos anos anteriores.
 
 load("doutorado.RData")
+
 
 ## Ending ===================================================================
 dateEle2020 <- Sys.time()
@@ -370,7 +374,6 @@ bd07Pref2020 <- bd07Pref2020 %>% filter(!codtse %in% apcodtse)
 bd07Pref2020 <- rbind(bd07Pref2020, apver)
 save(bd07Pref2020, file = "prefeito.RData")
 write.csv2(bd07Pref2020, file = "prefeitos2020.csv", row.names = F)
-dateEle2020 <- Sys.time()
 clsap()
 save.image()
 
@@ -380,4 +383,54 @@ save(bd07Pref2020, file = "prefeito.RData")
 write.csv2(bd07Pref2020, file = "prefeitos2020.csv", row.names = F)
 save(bd08Ver2020, file = "vereador.RData")
 write.csv2(bd08Ver2020, file = "vereadores2020.csv", row.names = F)
+save.image()
+
+### Dados de partidos.
+
+apf <- list.files("getjson/jsons", full.names = T)
+
+aptab2 <- tibble()
+apl <- length(apf)
+apx <- 1
+
+for(apff in apf) {
+  
+  apjson <- fromJSON(paste(readLines(apff), collapse=""))
+  
+  apele <- apjson$ele
+  apdt <- apjson$dg
+  aphora <- apjson$hg
+  apmun <- apjson$abr[[1]]$cdabr
+  
+  apcands <- apjson$abr[[1]]$part
+  
+  apnpart <- as_tibble(t(sapply(apcands, function(x) x)))
+  aptib <- tibble(apele, apdt, aphora, apmun, apnpart)
+  aptab2 <- rbind(aptab2, aptib)
+  
+  print(apx/apl*100)
+  apx <- apx + 1
+  
+}
+
+names(aptab2) <- c("codele", "data", "hora", "codtse", "npart", "nominaistotalizados", "nominaiscomputados", "legendatotalizados", "legendacomputados")
+aptab2[,c(6:9)] <- lapply(aptab2[,c(6:9)], as.numeric)
+aptab2$validostotalizados <- aptab2$nominaistotalizados + aptab2$legendatotalizados
+aptab2$validoscomputados <- aptab2$nominaiscomputados + aptab2$legendacomputados
+
+aptab2$uf <- tabMunHist$uf[match(aptab2$codtse, tabMunHist$codTse)]
+aptab2$codibge <- tabMunHist$codIbgeDv[match(aptab2$codtse, tabMunHist$codTse)]
+aptab2$regiao <- tabMunHist$regiao[match(aptab2$codtse, tabMunHist$codTse)]
+aptab2$siglapart <- tabPart$simpAtual[match(aptab2$npart, tabPart$num)]
+aptab2 <- aptab2[,c(1:5, 15, 6:14)]
+bd09Part2020 <- aptab2
+bd09Part2020$cargo <- "vereador"
+bd09Part2020$ano <- "2020"
+bd09Part2020$nomemun <- bd03Pref$nomMun[match(bd09Part2020$codtse, bd03Pref$codMun)]
+bd09Part2020$npart <- as.character(bd09Part2020$npart)
+write.csv2(bd09Part2020, file = "partidos2020.csv", row.names = F)
+
+####################################################################################
+clsap()
+dateEle2020 <- Sys.time()
 save.image()
