@@ -49,341 +49,6 @@ load("doutorado.RData")
 
 
 ## Ending ===================================================================
-dateEle2020 <- Sys.time()
-save.image()
-
-ap <- bd03Pref %>% filter(eleito == 1, capital == 1, ano == 2016) %>% select(uf, nomMun, partOrig, regiao)
-ap2 <- ap %>% group_by(partOrig) %>% summarise(n = n())
-
-
-## Pegando JSONS
-apcodtse <- unique(bd01Ver$codMun)
-apuf <- unique(bd01Ver$uf)
-apx <- 1
-aptab <- tibble()
-
-for(apu in apuf) {
-  
-  apcodtse <- unique(bd01Ver$codMun[bd01Ver$uf == apu])
-  apufs <- tolower(apu)
-  print(apu)
-  
-  for(api in apcodtse) {
-  
-    aplink <- sprintf("https://resultados.tse.jus.br/oficial/ele2020/divulgacao/oficial/426/dados-simplificados/%s/%s%s-c0013-e000426-r.json", apufs, apufs, api)
-    apjson <- fromJSON(paste(readLines(aplink), collapse=""))
-    apjson <- toJSON(apjson)
-    
-    apname <- paste0("vereador/", api, ".json")
-    write(apjson, apname)
-    
-    
-  }
-
-}
-
-apcodtse <- unique(bd01Ver$codMun)
-apuf <- unique(bd01Ver$uf)
-
-for(apu in apuf) {
-  
-  apcodtse <- unique(bd01Ver$codMun[bd01Ver$uf == apu])
-  apufs <- tolower(apu)
-  print(apu)
-  
-  for(api in apcodtse) {
-    
-    aplink <- sprintf("https://resultados.tse.jus.br/oficial/ele2020/divulgacao/oficial/426/dados-simplificados/%s/%s%s-c0011-e000426-r.json", apufs, apufs, api)
-    apjson <- fromJSON(paste(readLines(aplink), collapse=""))
-    apjson <- toJSON(apjson)
-    
-    apname <- paste0("prefeito/", api, ".json")
-    write(apjson, apname)
-    
-    
-  }
-  
-}
-
-#aplast <- aptab$X.00019.[nrow(aptab)]
-#apquais <- unique(aptab$X.00019.)
-#apquais <- apquais[apquais != aplast]
-#aptab <- aptab %>% filter(X.00019. != aplast)
-
-
-# compilando vereador
-apx <- 1
-aptab <- tibble()
-
-apf <- list.files("vereador", full.names = T)
-#apf2 <- unlist(lapply(apquais, function(x) which(grepl(x, apf))))
-#apf <- apf[-apf2]
-
-#aptab2 <- aptab
-
-for(apff in apf) {
-  
-  apjson <- fromJSON(paste(readLines(apff), collapse=""))
-  
-  apele <- apjson$ele
-  apcod <- apjson$cdabr
-  apdt <- apjson$dt
-  aphora <- apjson$ht
-  apporc <- apjson$psa
-  apturno <- apjson$t
-  apfase <- apjson$f
-  apcands <- apjson$cand
-  
-  apnumcand <- sapply(apcands, function(x) x$n)
-  apnome <- sapply(apcands, function(x) x$nm)
-  appart <-  sapply(apcands, function(x) x$cc)
-  apvap <-  sapply(apcands, function(x) x$vap)
-  appvap <-  sapply(apcands, function(x) x$pvap)
-  apele2 <-  sapply(apcands, function(x) x$st)
-  
-  aptib <- tibble(apele, apcod, apdt, aphora, apporc, apturno, apfase, apnumcand,
-                 apnome, appart, apvap, appvap, apele2)
-  names(aptib) <- names(aptab)
-  aptab <- rbind(aptab, aptib)
-  
-  print(apx/length(apf)*100)
-  apx <- apx + 1
-  
-}
-
-
-apver <- aptab
-names(apver) <- c("codele", "codtse", "data", "hora", "apuracao", "turno", "fase", "ncand", "nome", "partido", "votabs", "votpor", "situacao")
-apver$cargo <- "vereador"
-apver$codibge <- tabMunHist$codIbgeDv[match(apver$codtse, tabMunHist$codTse)]
-apver$uf <- tabMunHist$uf[match(apver$codtse, tabMunHist$codTse)]
-apver$regiao <- tabMunHist$regiao[match(apver$codtse, tabMunHist$codTse)]
-apver$compilado <- Sys.time()
-
-save(apver, file = "ver.RData")
-write.csv2(apver, file = "vereadores2020.csv", row.names = F)
-save.image()
-
-## PREFEITOS
-
-apx <- 1
-aptab <- tibble()
-
-apf <- list.files("prefeito", full.names = T)
-#apf2 <- unlist(lapply(apquais, function(x) which(grepl(x, apf))))
-#apf <- apf[-apf2]
-
-#aptab2 <- aptab
-
-for(apff in apf) {
-  
-  apjson <- fromJSON(paste(readLines(apff), collapse=""))
-  
-  apele <- apjson$ele
-  apcod <- apjson$cdabr
-  apdt <- apjson$dt
-  aphora <- apjson$ht
-  apporc <- apjson$psa
-  apturno <- apjson$t
-  apfase <- apjson$f
-  apcands <- apjson$cand
-  
-  apnumcand <- sapply(apcands, function(x) x$n)
-  apnome <- sapply(apcands, function(x) x$nm)
-  appart <-  sapply(apcands, function(x) x$cc)
-  apvap <-  sapply(apcands, function(x) x$vap)
-  appvap <-  sapply(apcands, function(x) x$pvap)
-  apele2 <-  sapply(apcands, function(x) x$st)
-  
-  aptib <- tibble(apele, apcod, apdt, aphora, apporc, apturno, apfase, apnumcand,
-                  apnome, appart, apvap, appvap, apele2)
-  names(aptib) <- names(aptab)
-  aptab <- rbind(aptab, aptib)
-  
-  print(apx/length(apf)*100)
-  apx <- apx + 1
-  
-}
-
-
-apver <- aptab
-names(apver) <- c("codele", "codtse", "data", "hora", "apuracao", "turno", "fase", "ncand", "nome", "partido", "votabs", "votpor", "situacao")
-apver$cargo <- "prefeito"
-apver$codibge <- tabMunHist$codIbgeDv[match(apver$codtse, tabMunHist$codTse)]
-apver$uf <- tabMunHist$uf[match(apver$codtse, tabMunHist$codTse)]
-apver$regiao <- tabMunHist$regiao[match(apver$codtse, tabMunHist$codTse)]
-apver$compilado <- Sys.time()
-
-save(apver, file = "pref.RData")
-write.csv2(apver, file = "prefeitos2020.csv", row.names = F)
-save.image()
-
-# atualizando banco só com municípios que não tiveram 100% das urnas apuradas.
-bd08Ver2020 <- read.csv2("vereadores2020.csv", colClasses = rep("character", 18))
-
-
-apcodtse <- unique(bd08Ver2020$codtse[bd08Ver2020$situacao == ""])
-apx <- 1
-
-for(apu in apcodtse) {
-  
-  apufs <- unique(tolower(bd08Ver2020$uf[bd08Ver2020$codtse == apu]))
-
-  aplink <- sprintf("https://resultados.tse.jus.br/oficial/ele2020/divulgacao/oficial/426/dados-simplificados/%s/%s%s-c0013-e000426-r.json", apufs, apufs, apu)
-  apjson <- fromJSON(paste(readLines(aplink), collapse=""))
-  apjson <- toJSON(apjson)
-  
-  apname <- paste0("vereador/", apu, ".json")
-  write(apjson, apname)
-  
-  print(apx/length(apcodtse)*100)
-  apx <- apx + 1
-  
-}
-
-# compilando vereador
-apx <- 1
-aptab <- tibble()
-
-apf <- list.files("vereador", full.names = T)
-#apf2 <- unlist(lapply(apquais, function(x) which(grepl(x, apf))))
-#apf <- apf[-apf2]
-
-#aptab2 <- aptab
-
-for(apff in apf) {
-  
-  apjson <- fromJSON(paste(readLines(apff), collapse=""))
-  
-  apele <- apjson$ele
-  apcod <- apjson$cdabr
-  apdt <- apjson$dt
-  aphora <- apjson$ht
-  apporc <- apjson$psa
-  apturno <- apjson$t
-  apfase <- apjson$f
-  apcands <- apjson$cand
-  
-  apnumcand <- sapply(apcands, function(x) x$n)
-  apnome <- sapply(apcands, function(x) x$nm)
-  appart <-  sapply(apcands, function(x) x$cc)
-  apvap <-  sapply(apcands, function(x) x$vap)
-  appvap <-  sapply(apcands, function(x) x$pvap)
-  apele2 <-  sapply(apcands, function(x) x$st)
-  
-  aptib <- tibble(apele, apcod, apdt, aphora, apporc, apturno, apfase, apnumcand,
-                  apnome, appart, apvap, appvap, apele2)
-  names(aptib) <- names(aptab)
-  aptab <- rbind(aptab, aptib)
-  
-  print(apx/length(apf)*100)
-  apx <- apx + 1
-  
-}
-
-apver <- aptab
-names(apver) <- c("codele", "codtse", "data", "hora", "apuracao", "turno", "fase", "ncand", "nome", "partido", "votabs", "votpor", "situacao")
-apver$cargo <- "vereador"
-apver$codibge <- tabMunHist$codIbgeDv[match(apver$codtse, tabMunHist$codTse)]
-apver$uf <- tabMunHist$uf[match(apver$codtse, tabMunHist$codTse)]
-apver$regiao <- tabMunHist$regiao[match(apver$codtse, tabMunHist$codTse)]
-apver$compilado <- Sys.time()
-
-apcodtse <- unique(apver$codtse)
-bd08Ver2020 <- bd08Ver2020 %>% filter(!codtse %in% apcodtse)
-bd08Ver2020 <- rbind(bd08Ver2020, apver)
-save(bd08Ver2020, file = "vereador.RData")
-write.csv2(bd08Ver2020, file = "vereadores2020.csv", row.names = F)
-dateEle2020 <- Sys.time()
-save.image()
-
-## Atualizando Prefeitos
-# atualizando banco só com municípios que não tiveram 100% das urnas apuradas.
-bd07Pref2020 <- read.csv2("prefeitos2020.csv", colClasses = rep("character", 18))
-
-
-apcodtse <- unique(bd07Pref2020$codtse[bd07Pref2020$situacao == ""])
-apx <- 1
-
-for(apu in apcodtse) {
-  
-  apufs <- unique(tolower(bd07Pref2020$uf[bd07Pref2020$codtse == apu]))
-  
-  aplink <- sprintf("https://resultados.tse.jus.br/oficial/ele2020/divulgacao/oficial/426/dados-simplificados/%s/%s%s-c0011-e000426-r.json", apufs, apufs, apu)
-  apjson <- fromJSON(paste(readLines(aplink), collapse=""))
-  apjson <- toJSON(apjson)
-  
-  apname <- paste0("prefeito/", apu, ".json")
-  write(apjson, apname)
-  
-  print(apx/length(apcodtse)*100)
-  apx <- apx + 1
-  
-}
-
-# compilando vereador
-apx <- 1
-aptab <- tibble()
-
-apf <- list.files("prefeito", full.names = T)
-#apf2 <- unlist(lapply(apquais, function(x) which(grepl(x, apf))))
-#apf <- apf[-apf2]
-
-#aptab2 <- aptab
-
-for(apff in apf) {
-  
-  apjson <- fromJSON(paste(readLines(apff), collapse=""))
-  
-  apele <- apjson$ele
-  apcod <- apjson$cdabr
-  apdt <- apjson$dt
-  aphora <- apjson$ht
-  apporc <- apjson$psa
-  apturno <- apjson$t
-  apfase <- apjson$f
-  apcands <- apjson$cand
-  
-  apnumcand <- sapply(apcands, function(x) x$n)
-  apnome <- sapply(apcands, function(x) x$nm)
-  appart <-  sapply(apcands, function(x) x$cc)
-  apvap <-  sapply(apcands, function(x) x$vap)
-  appvap <-  sapply(apcands, function(x) x$pvap)
-  apele2 <-  sapply(apcands, function(x) x$st)
-  
-  aptib <- tibble(apele, apcod, apdt, aphora, apporc, apturno, apfase, apnumcand,
-                  apnome, appart, apvap, appvap, apele2)
-  names(aptib) <- names(aptab)
-  aptab <- rbind(aptab, aptib)
-  
-  print(apx/length(apf)*100)
-  apx <- apx + 1
-  
-}
-
-apver <- aptab
-names(apver) <- c("codele", "codtse", "data", "hora", "apuracao", "turno", "fase", "ncand", "nome", "partido", "votabs", "votpor", "situacao")
-apver$cargo <- "prefeito"
-apver$codibge <- tabMunHist$codIbgeDv[match(apver$codtse, tabMunHist$codTse)]
-apver$uf <- tabMunHist$uf[match(apver$codtse, tabMunHist$codTse)]
-apver$regiao <- tabMunHist$regiao[match(apver$codtse, tabMunHist$codTse)]
-apver$compilado <- Sys.time()
-
-apcodtse <- unique(apver$codtse)
-bd07Pref2020 <- bd07Pref2020 %>% filter(!codtse %in% apcodtse)
-bd07Pref2020 <- rbind(bd07Pref2020, apver)
-save(bd07Pref2020, file = "prefeito.RData")
-write.csv2(bd07Pref2020, file = "prefeitos2020.csv", row.names = F)
-clsap()
-save.image()
-
-bd08Ver2020$compilado <- Sys.time()
-bd07Pref2020$compilado <- Sys.time()
-save(bd07Pref2020, file = "prefeito.RData")
-write.csv2(bd07Pref2020, file = "prefeitos2020.csv", row.names = F)
-save(bd08Ver2020, file = "vereador.RData")
-write.csv2(bd08Ver2020, file = "vereadores2020.csv", row.names = F)
-save.image()
 
 ### Dados de partidos.
 
@@ -429,6 +94,121 @@ bd09Part2020$ano <- "2020"
 bd09Part2020$nomemun <- bd03Pref$nomMun[match(bd09Part2020$codtse, bd03Pref$codMun)]
 bd09Part2020$npart <- as.character(bd09Part2020$npart)
 write.csv2(bd09Part2020, file = "partidos2020.csv", row.names = F)
+
+### Dados de vereador
+
+apf <- list.files("getjson/jsons/vereadores", full.names = T)
+
+aptab <- tibble()
+apl <- length(apf)
+apx <- 1
+
+for(apff in apf) {
+  
+  apjson <- fromJSON(paste(readLines(apff), collapse=""))
+  
+  apele <- apjson$ele
+  apcod <- apjson$cdabr
+  apdt <- apjson$dt
+  aphora <- apjson$ht
+  apporc <- apjson$psa
+  apturno <- apjson$t
+  apfase <- apjson$f
+  apcands <- apjson$cand
+  
+  apnumcand <- sapply(apcands, function(x) x$n)
+  apnome <- sapply(apcands, function(x) x$nm)
+  appart <-  sapply(apcands, function(x) x$cc)
+  apvap <-  sapply(apcands, function(x) x$vap)
+  appvap <-  sapply(apcands, function(x) x$pvap)
+  apele2 <-  sapply(apcands, function(x) x$st)
+  
+  aptib <- tibble(apele, apcod, apdt, aphora, apporc, apturno, apfase, apnumcand,
+                  apnome, appart, apvap, appvap, apele2)
+  names(aptib) <- names(aptab)
+  aptab <- rbind(aptab, aptib)
+  
+  print(apx/length(apf)*100)
+  apx <- apx + 1
+  #stop()
+  
+}
+
+names(aptab) <- c("codele", "codtse", "data", "hora", "apuracao", "turno", "divulgação", "ncand", "nomeurna", "partido", "votosabs", "votosporc", "situacao")
+aptab[,c(1:13)] <- lapply(aptab[,c(1:13)], function(x) trimws(x, "both"))
+aptab[,c(9,13)] <- lapply(aptab[,c(9,13)], function(x) iconv(x,to="ASCII//TRANSLIT"))
+aptab$situacao <- toupper(aptab$situacao)
+aptab$divulgação <- "oficial"
+aptab$cargo <- "vereador"
+aptab$uf <- tabMunHist$uf[match(aptab$codtse, tabMunHist$codTse)]
+aptab$codibge <- tabMunHist$codIbgeDv[match(aptab$codtse, tabMunHist$codTse)]
+aptab$regiao <- tabMunHist$regiao[match(aptab$codtse, tabMunHist$codTse)]
+aptab$ano <- "2020"
+aptab$nomemun <- tabMunHist$nomeMun[match(aptab$codtse, tabMunHist$codTse)]
+aptab$situacao[aptab$situacao == ""] <- "NA"
+bd01Ver <- aptab
+apx <- substr(bd01Ver$ncand, 1, 2)
+bd01Ver$partido <- tabPart$simpAtual[match(apx, tabPart$num)]
+  
+write.csv2(bd01Ver, file = "vereador2020.csv", row.names = F)
+
+
+### Dados de prefeito
+
+apf <- list.files("getjson/jsons/prefeitos", full.names = T)
+
+aptab <- tibble()
+apl <- length(apf)
+apx <- 1
+
+for(apff in apf) {
+  
+  apjson <- fromJSON(paste(readLines(apff), collapse=""))
+  
+  apele <- apjson$ele
+  apcod <- apjson$cdabr
+  apdt <- apjson$dt
+  aphora <- apjson$ht
+  apporc <- apjson$psa
+  apturno <- apjson$t
+  apfase <- apjson$f
+  apcands <- apjson$cand
+  
+  apnumcand <- sapply(apcands, function(x) x$n)
+  apnome <- sapply(apcands, function(x) x$nm)
+  appart <-  sapply(apcands, function(x) x$cc)
+  apvap <-  sapply(apcands, function(x) x$vap)
+  appvap <-  sapply(apcands, function(x) x$pvap)
+  apele2 <-  sapply(apcands, function(x) x$st)
+  
+  aptib <- tibble(apele, apcod, apdt, aphora, apporc, apturno, apfase, apnumcand,
+                  apnome, appart, apvap, appvap, apele2)
+  names(aptib) <- names(aptab)
+  aptab <- rbind(aptab, aptib)
+  
+  print(apx/length(apf)*100)
+  apx <- apx + 1
+  #stop()
+  
+}
+
+names(aptab) <- c("codele", "codtse", "data", "hora", "apuracao", "turno", "divulgação", "ncand", "nomeurna", "partido", "votosabs", "votosporc", "situacao")
+aptab[,c(1:13)] <- lapply(aptab[,c(1:13)], function(x) trimws(x, "both"))
+aptab[,c(9,13)] <- lapply(aptab[,c(9,13)], function(x) iconv(x,to="ASCII//TRANSLIT"))
+aptab$situacao <- toupper(aptab$situacao)
+aptab$divulgação <- "oficial"
+aptab$cargo <- "prefeito"
+aptab$uf <- tabMunHist$uf[match(aptab$codtse, tabMunHist$codTse)]
+aptab$codibge <- tabMunHist$codIbgeDv[match(aptab$codtse, tabMunHist$codTse)]
+aptab$regiao <- tabMunHist$regiao[match(aptab$codtse, tabMunHist$codTse)]
+aptab$ano <- "2020"
+aptab$nomemun <- tabMunHist$nomeMun[match(aptab$codtse, tabMunHist$codTse)]
+aptab$situacao[aptab$situacao == ""] <- "NA"
+aptab$partido <- tabPart$simpAtual[match(aptab$ncand, tabPart$num)]
+bd03Pref <- aptab
+
+write.csv2(bd03Pref, file = "prefeito2020.csv", row.names = F)
+
 
 ####################################################################################
 clsap()
